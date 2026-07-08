@@ -70,18 +70,30 @@ def load_tokenizer() -> AutoTokenizer:
     return tokenizer
 
 
-def load_model(accelerator) -> AutoModelForCausalLM:
+def load_model(accelerator):
+    # 仅 rank0 下载
+    if accelerator.is_main_process:
+        _ = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME,
+            trust_remote_code=True,
+        )
+        del _
+
+    # 等待下载完成
+    accelerator.wait_for_everyone()
+
+    # 所有 rank 从本地缓存加载
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        dtype=get_dtype(),               # 替换废弃torch_dtype
-        device_map=None,                  # FSDP多卡强制必填
-        low_cpu_mem_usage=False,          # 适配FSDP加载
+        dtype=get_dtype(),
         attn_implementation=ATTN_IMPLEMENTATION,
         trust_remote_code=True,
-        local_files_only=True
+        local_files_only=True,
+        device_map=None,
+        low_cpu_mem_usage=False,
     )
-    return model
 
+    return model
 
 def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
     decay_params = []
