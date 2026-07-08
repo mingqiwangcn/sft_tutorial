@@ -70,13 +70,19 @@ def load_tokenizer() -> AutoTokenizer:
     return tokenizer
 
 
-def load_model() -> AutoModelForCausalLM:
-    return AutoModelForCausalLM.from_pretrained(
+def load_model(accelerator) -> AutoModelForCausalLM:
+    if accelerator.is_main_process:
+        AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+    accelerator.wait_for_everyone()
+
+    model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         torch_dtype=get_dtype(),
         attn_implementation=ATTN_IMPLEMENTATION,
         trust_remote_code=True,
+        local_files_only=True
     )
+    return model
 
 
 def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
@@ -173,6 +179,7 @@ def main() -> None:
         log_with="tensorboard",
         project_dir=LOG_DIR,
     )
+    model = load_model(accelerator)
 
     tokenizer = load_tokenizer()
     collator = SFTDataCollator(pad_token_id=tokenizer.pad_token_id)
@@ -190,7 +197,7 @@ def main() -> None:
         shuffle=False,
     )
 
-    model = load_model()
+    
     optimizer = build_optimizer(model)
 
     update_steps_per_epoch = math.ceil(
