@@ -71,40 +71,28 @@ def load_tokenizer() -> AutoTokenizer:
 
 
 def load_model(accelerator):
-    # 量化开关，统一控制
-    load_4bit = True
-    load_8bit = False
-
-    # 仅 rank0 下载模型到本地缓存
+    # 仅 rank0 下载
     if accelerator.is_main_process:
-        tmp_model = AutoModelForCausalLM.from_pretrained(
+        _ = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
             trust_remote_code=True,
-            local_files_only=False,
         )
-        del tmp_model
+        del _
+
+    # 等待下载完成
     accelerator.wait_for_everyone()
 
-    # 统一加载参数
-    load_kwargs = dict(
-        pretrained_model_name_or_path=MODEL_NAME,
-        torch_dtype=get_dtype(),
+    # 所有 rank 从本地缓存加载
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_NAME,
+        dtype=get_dtype(),
         attn_implementation=ATTN_IMPLEMENTATION,
         trust_remote_code=True,
         local_files_only=True,
-        device_map=None,  # DDP训练固定None，accelerator接管设备
-        low_cpu_mem_usage=True,  # 量化必须开，大幅降低加载内存
+        device_map=None,
+        low_cpu_mem_usage=False,
     )
-    # 注入量化参数
-    if load_4bit:
-        load_kwargs["load_in_4bit"] = True
-        load_kwargs["bnb_4bit_use_double_quant"] = True
-        load_kwargs["bnb_4bit_quant_type"] = "nf4"
-        load_kwargs["bnb_4bit_compute_dtype"] = get_dtype()
-    elif load_8bit:
-        load_kwargs["load_in_8bit"] = True
 
-    model = AutoModelForCausalLM.from_pretrained(**load_kwargs)
     return model
 
 def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
