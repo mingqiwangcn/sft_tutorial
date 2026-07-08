@@ -70,38 +70,15 @@ def load_tokenizer() -> AutoTokenizer:
     return tokenizer
 
 
-import os
-from transformers import AutoModelForCausalLM
-
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
-
-
-import os
-from transformers import AutoModelForCausalLM
-
-# 关闭hub并发传输、禁用tqdm多线程进度条
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
-os.environ["HF_HUB_DISABLE_TQDM_THREADS"] = "1"
-
 def load_model(accelerator) -> AutoModelForCausalLM:
-    if accelerator.is_main_process:
-        from huggingface_hub import snapshot_download
-        # 完全禁用并行下载，单文件串行，规避ThreadPoolExecutor崩溃
-        snapshot_download(
-            repo_id=MODEL_NAME,
-            max_workers=1,
-            ignore_patterns=["*.bin.index.json"],
-            resume_download=True
-        )
-    accelerator.wait_for_everyone()
-
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        torch_dtype=get_dtype(),
-        device_map=None,
-        low_cpu_mem_usage=True,
+        dtype=get_dtype(),               # 替换废弃torch_dtype
+        device_map=None,                  # FSDP多卡强制必填
+        low_cpu_mem_usage=False,          # 适配FSDP加载
         attn_implementation=ATTN_IMPLEMENTATION,
-        trust_remote_code=True
+        trust_remote_code=True,
+        local_files_only=True
     )
     return model
 
