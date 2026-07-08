@@ -8,4 +8,4 @@ MAX_LENGTH = 4096
 
 DTYPE = "bfloat16"
 
-ATTN_IMPLEMENTATION = "flash_attention_2"
+ATTN_IMPLEMENTATION = "SDPA"
