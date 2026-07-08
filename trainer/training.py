@@ -31,7 +31,6 @@ from configs.train_cfg import (
     OUTPUT_DIR,
     PER_DEVICE_EVAL_BATCH_SIZE,
     PER_DEVICE_TRAIN_BATCH_SIZE,
-    SAVE_EVERY_STEPS,
     SEED,
     WARMUP_RATIO,
     WEIGHT_DECAY,
@@ -135,7 +134,7 @@ def evaluate(
         loss = outputs.loss
 
         gathered_loss = accelerator.gather_for_metrics(
-            loss.detach().repeat(batch["input_ids"].shape[0])
+            loss.detach()
         )
         losses.append(gathered_loss)
 
@@ -273,20 +272,12 @@ def main() -> None:
                     step=global_step,
                 )
 
-            if global_step % SAVE_EVERY_STEPS == 0:
                 save_checkpoint(
                     accelerator=accelerator,
                     tokenizer=tokenizer,
                     output_dir=OUTPUT_DIR,
                     step=global_step,
                 )
-
-    save_checkpoint(
-        accelerator=accelerator,
-        tokenizer=tokenizer,
-        output_dir=OUTPUT_DIR,
-        step=global_step,
-    )
 
     accelerator.end_training()
 
