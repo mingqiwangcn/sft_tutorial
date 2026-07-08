@@ -4,7 +4,7 @@ Full fine-tuning training loop for Qwen SFT.
 Usage:
     accelerate launch --config_file configs/fsdp2.yaml trainer/training.py
 """
-
+import os
 import math
 import random
 from pathlib import Path
@@ -73,12 +73,16 @@ def load_tokenizer() -> AutoTokenizer:
 def load_model(accelerator) -> AutoModelForCausalLM:
     if accelerator.is_main_process:
         from huggingface_hub import snapshot_download
-        snapshot_download(repo_id=MODEL_NAME, local_dir=MODEL_NAME)
+        if not os.path.exists(os.path.join(MODEL_NAME, "config.json")):
+            snapshot_download(repo_id=MODEL_NAME)
+    # 所有进程等待下载完成
     accelerator.wait_for_everyone()
 
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        torch_dtype=get_dtype(),
+        dtype=get_dtype(),               # 替换废弃torch_dtype
+        device_map=None,                  # FSDP多卡强制必填
+        low_cpu_mem_usage=False,          # 适配FSDP加载
         attn_implementation=ATTN_IMPLEMENTATION,
         trust_remote_code=True,
         local_files_only=True
