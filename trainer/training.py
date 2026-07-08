@@ -72,7 +72,8 @@ def load_tokenizer() -> AutoTokenizer:
 
 def load_model(accelerator) -> AutoModelForCausalLM:
     if accelerator.is_main_process:
-        AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+        from huggingface_hub import snapshot_download
+        snapshot_download(repo_id=MODEL_NAME, local_dir=MODEL_NAME)
     accelerator.wait_for_everyone()
 
     model = AutoModelForCausalLM.from_pretrained(
