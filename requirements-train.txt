@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# CUDA-only dependency for ATTN_IMPLEMENTATION = "flash_attention_2".
+# Install this on the GPU training machine, not on macOS local dev machines.
+flash-attn
