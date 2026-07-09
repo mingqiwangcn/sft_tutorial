@@ -233,8 +233,7 @@ def main() -> None:
         eval_dataloader,
         scheduler,
     )
-    print_mem(accelerator, "after prepare")
-
+    
     if accelerator.is_main_process:
         print(model)
 
