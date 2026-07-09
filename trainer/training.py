@@ -259,10 +259,11 @@ def main() -> None:
                         MAX_GRAD_NORM,
                     )
 
-                print_mem("before optimizer")
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
+                    print_mem("before optimizer")
+                    optimizer.step()
+                    print_mem("after optimizer")
+                    scheduler.step()
+                    optimizer.zero_grad()
 
             if not accelerator.sync_gradients:
                 continue
