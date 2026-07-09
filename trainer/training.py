@@ -207,6 +207,17 @@ def main() -> None:
     
     optimizer = build_optimizer(model)
 
+    total = 0
+
+    for group in optimizer.param_groups:
+
+        for p in group["params"]:
+
+            total += p.numel()
+
+    print(f"[rank{accelerator.process_index}] optimizer numel = {total:,}")
+
+
     update_steps_per_epoch = math.ceil(
         len(train_dataloader) / GRADIENT_ACCUMULATION_STEPS
     )
