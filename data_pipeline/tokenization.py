@@ -58,19 +58,31 @@ def build_labels(
 def tokenize_sample(sample: dict, tokenizer: AutoTokenizer) -> dict:
     messages = build_messages(sample)
 
-    prompt_ids = tokenizer.apply_chat_template(
-        messages[:-1],
-        tokenize=True,
-        add_generation_prompt=True,
-        truncation=True,
-        max_length=MAX_LENGTH,
-    )
-
     encoded = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=False,
         return_dict=True,
+        truncation=False,
+        max_length=MAX_LENGTH,
+    )
+    input_ids = encoded["input_ids"]
+    if len(input_ids) > MAX_LENGTH:
+        print(
+            f"[DROP] sample_id={sample.get('sample_id', 'unknown')} "
+            f"length={len(input_ids)} > {MAX_LENGTH}"
+        )
+        return {
+            "input_ids": [],
+            "attention_mask": [],
+            "labels": [],
+            "has_generation_tokens": False,
+        }
+
+    prompt_ids = tokenizer.apply_chat_template(
+        messages[:-1],
+        tokenize=True,
+        add_generation_prompt=True,
         truncation=True,
         max_length=MAX_LENGTH,
     )
