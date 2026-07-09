@@ -222,6 +222,8 @@ def main() -> None:
         eval_dataloader,
         scheduler,
     )
+    if accelerator.is_main_process:
+        print(model)
 
     accelerator.init_trackers("enterprise_sft")
 
