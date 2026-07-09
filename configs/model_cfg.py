@@ -4,7 +4,7 @@ Model configuration.
 
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
-MAX_LENGTH = 4096
+MAX_LENGTH = 512
 
 DTYPE = "bfloat16"
 

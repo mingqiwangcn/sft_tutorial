@@ -79,6 +79,7 @@ def load_model():
         device_map=None,
         low_cpu_mem_usage=False,
     )
+    model.config.use_cache = False
     return model
 
 def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
