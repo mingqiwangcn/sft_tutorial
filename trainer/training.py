@@ -69,20 +69,7 @@ def load_tokenizer() -> AutoTokenizer:
 
     return tokenizer
 
-
-def load_model(accelerator):
-    # 仅 rank0 下载
-    if accelerator.is_main_process:
-        _ = AutoModelForCausalLM.from_pretrained(
-            MODEL_NAME,
-            trust_remote_code=True,
-        )
-        del _
-
-    # 等待下载完成
-    accelerator.wait_for_everyone()
-
-    # 所有 rank 从本地缓存加载
+def load_model():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         dtype=get_dtype(),
@@ -92,7 +79,6 @@ def load_model(accelerator):
         device_map=None,
         low_cpu_mem_usage=False,
     )
-
     return model
 
 def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
@@ -189,7 +175,7 @@ def main() -> None:
         log_with="tensorboard",
         project_dir=LOG_DIR,
     )
-    model = load_model(accelerator)
+    model = load_model()
 
     tokenizer = load_tokenizer()
     collator = SFTDataCollator(pad_token_id=tokenizer.pad_token_id)
