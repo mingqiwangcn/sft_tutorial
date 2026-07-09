@@ -36,7 +36,6 @@ from configs.train_cfg import (
     WEIGHT_DECAY,
 )
 from trainer.collator import SFTDataCollator
-from bitsandbytes.optim import AdamW8bit
 
 def print_mem(accelerator, tag):
     if torch.cuda.is_available():
@@ -106,7 +105,7 @@ def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
         else:
             decay_params.append(param)
 
-    return AdamW8bit(
+    return torch.optim.AdamW(
         [
             {"params": decay_params, "weight_decay": WEIGHT_DECAY},
             {"params": no_decay_params, "weight_decay": 0.0},
@@ -233,7 +232,8 @@ def main() -> None:
         eval_dataloader,
         scheduler,
     )
-    
+    print_mem(accelerator, "after prepare")
+
     if accelerator.is_main_process:
         print(model)
 
@@ -248,7 +248,11 @@ def main() -> None:
                 outputs = model(**batch)
                 loss = outputs.loss
 
+                print_mem(accelerator, f"after prepare ({global_step})")
+
                 accelerator.backward(loss)
+
+                print_mem(accelerator, f"after backward ({global_step})")
 
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(
