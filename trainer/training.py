@@ -106,7 +106,7 @@ def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
         else:
             decay_params.append(param)
 
-    return torch.optim.AdamW8bit(
+    return AdamW8bit(
         [
             {"params": decay_params, "weight_decay": WEIGHT_DECAY},
             {"params": no_decay_params, "weight_decay": 0.0},
