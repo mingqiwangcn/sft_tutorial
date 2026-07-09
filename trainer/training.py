@@ -234,6 +234,19 @@ def main() -> None:
     )
     print_mem(accelerator, "after prepare")
 
+    from torch.distributed.tensor import DTensor
+
+    p = next(model.parameters())
+
+    print(f"[rank{accelerator.process_index}] type = {type(p)}")
+
+    if isinstance(p, DTensor):
+
+        print(f"[rank{accelerator.process_index}] local shape = {tuple(p.to_local().shape)}")
+
+        print(f"[rank{accelerator.process_index}] global shape = {tuple(p.shape)}")
+
+    
     if accelerator.is_main_process:
         print(model)
 
