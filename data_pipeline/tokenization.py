@@ -132,6 +132,11 @@ def process_dataset(
         desc=f"Filtering samples without generation tokens from {dataset_dir.name}",
     )
 
+    tokenized_dataset = tokenized_dataset.filter(
+        lambda sample: len(sample["input_ids"]) <= MAX_LENGTH,
+        desc=f"Filtering samples longer than {MAX_LENGTH} tokens",
+    )
+
     filtered_count = before_count - len(tokenized_dataset)
 
     tokenized_dataset = tokenized_dataset.remove_columns(
@@ -141,7 +146,7 @@ def process_dataset(
     if filtered_count > 0: 
         print(
             f"Filtered {filtered_count} samples "
-            "without generation tokens."
+            "without generation tokens or > {MAX_LENGTH}."
         )
 
     tokenized_dataset.save_to_disk(output_dir)
