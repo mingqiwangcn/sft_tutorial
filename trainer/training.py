@@ -36,6 +36,7 @@ from configs.train_cfg import (
     WEIGHT_DECAY,
 )
 from trainer.collator import SFTDataCollator
+from bitsandbytes.optim import AdamW8bit
 
 def print_mem(accelerator, tag):
     if torch.cuda.is_available():
@@ -105,7 +106,7 @@ def build_optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
         else:
             decay_params.append(param)
 
-    return torch.optim.Adam(
+    return torch.optim.AdamW8bit(
         [
             {"params": decay_params, "weight_decay": WEIGHT_DECAY},
             {"params": no_decay_params, "weight_decay": 0.0},
@@ -207,17 +208,6 @@ def main() -> None:
     
     optimizer = build_optimizer(model)
 
-    total = 0
-
-    for group in optimizer.param_groups:
-
-        for p in group["params"]:
-
-            total += p.numel()
-
-    print(f"[rank{accelerator.process_index}] optimizer numel = {total:,}")
-
-
     update_steps_per_epoch = math.ceil(
         len(train_dataloader) / GRADIENT_ACCUMULATION_STEPS
     )
@@ -245,19 +235,6 @@ def main() -> None:
     )
     print_mem(accelerator, "after prepare")
 
-    from torch.distributed.tensor import DTensor
-
-    p = next(model.parameters())
-
-    print(f"[rank{accelerator.process_index}] type = {type(p)}")
-
-    if isinstance(p, DTensor):
-
-        print(f"[rank{accelerator.process_index}] local shape = {tuple(p.to_local().shape)}")
-
-        print(f"[rank{accelerator.process_index}] global shape = {tuple(p.shape)}")
-
-    
     if accelerator.is_main_process:
         print(model)
 
@@ -272,11 +249,7 @@ def main() -> None:
                 outputs = model(**batch)
                 loss = outputs.loss
 
-                print_mem(accelerator, "after forward")
-
                 accelerator.backward(loss)
-
-                print_mem(accelerator, "after backward")
 
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(
@@ -284,11 +257,9 @@ def main() -> None:
                         MAX_GRAD_NORM,
                     )
 
-                    print_mem(accelerator, "before optimizer")
-                    optimizer.step()
-                    print_mem(accelerator, "after optimizer")
-                    scheduler.step()
-                    optimizer.zero_grad()
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
 
             if not accelerator.sync_gradients:
                 continue

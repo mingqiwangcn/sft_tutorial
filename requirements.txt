@@ -16,7 +16,6 @@ tqdm
 rich
 
 pyyaml
-
 tensorboard
-
 evaluate
+bitsandbytes
