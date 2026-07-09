@@ -37,6 +37,15 @@ from configs.train_cfg import (
 )
 from trainer.collator import SFTDataCollator
 
+def print_mem(tag):
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        print(
+            f"{tag}: "
+            f"alloc={torch.cuda.memory_allocated()/1024**3:.2f} GB, "
+            f"reserved={torch.cuda.memory_reserved()/1024**3:.2f} GB, "
+            f"max_alloc={torch.cuda.max_memory_allocated()/1024**3:.2f} GB"
+        )
 
 def set_seed(seed: int) -> None:
     random.seed(seed)
@@ -222,6 +231,8 @@ def main() -> None:
         eval_dataloader,
         scheduler,
     )
+    print_mem("after prepare")
+
     if accelerator.is_main_process:
         print(model)
 
@@ -236,7 +247,11 @@ def main() -> None:
                 outputs = model(**batch)
                 loss = outputs.loss
 
+                print_mem("after forward")
+
                 accelerator.backward(loss)
+
+                print_mem("after backward")
 
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(
@@ -244,6 +259,7 @@ def main() -> None:
                         MAX_GRAD_NORM,
                     )
 
+                print_mem("before optimizer")
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
