@@ -2,7 +2,7 @@
 Model configuration.
 """
 
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
 
 MAX_LENGTH = 4096
 
